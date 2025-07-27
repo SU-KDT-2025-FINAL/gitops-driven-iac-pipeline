@@ -408,3 +408,279 @@ git push origin main
 - [ ] AWS/Google Cloud 배포
 - [ ] 자동 버전 태깅
 - [ ] 보안 스캔 통합 
+
+## 실습 완료 후 정리
+- 깃허브 액션은 개발자가 코드 변경사항에 대해 푸쉬를 할 경우 설정해둔 워크플로우(yaml 파일)을 따라 실행된다.
+- 실습에서는 4개의 워크플로우로 구성되어있고 해당 워크플로우는 각각의 역할을 수행하면서 전체 CI/CD 파이프라인을 구성한다.
+
+## 🔄 워크플로우 실행 흐름도
+
+### 📊 전체 워크플로우 실행 순서
+
+```mermaid
+graph TD
+    A[개발자 코드 푸시] --> B[GitHub 저장소 업데이트]
+    B --> C[워크플로우 트리거]
+    
+    C --> D[Hello World Workflow]
+    C --> E[Advanced Workflow]
+    C --> F[Conditional Workflow]
+    
+    D --> G[기본 CI/CD 파이프라인]
+    E --> H[코드 품질 검사 + 배포]
+    F --> I[환경별 조건부 배포]
+    
+    G --> J[테스트 + 빌드 완료]
+    H --> K[품질 검사 통과]
+    I --> L[환경별 배포 완료]
+    
+    J --> M[Monitoring Workflow]
+    K --> M
+    L --> M
+    
+    M --> N[워크플로우 결과 알림]
+    N --> O[CI/CD 파이프라인 완료]
+```
+
+### 🎯 각 워크플로우 상세 흐름
+
+#### 1. Hello World Workflow (기본 CI/CD 파이프라인)
+
+```mermaid
+graph LR
+    A[코드 푸시] --> B[Hello World Workflow 트리거]
+    B --> C[Checkout code]
+    C --> D[Setup Node.js 18]
+    D --> E[Install dependencies]
+    E --> F[Run tests]
+    F --> G[Build project]
+    G --> H[Success message 출력]
+    H --> I[워크플로우 완료]
+    
+    style A fill:#e1f5fe
+    style I fill:#c8e6c9
+    style F fill:#fff3e0
+    style G fill:#fff3e0
+```
+
+**실행 단계:**
+1. **Checkout code**: GitHub에서 코드 다운로드
+2. **Setup Node.js**: Node.js 18 환경 설정
+3. **Install dependencies**: `npm install` 실행
+4. **Run tests**: `npm test` 실행 (tests/test.js)
+5. **Build project**: `npm run build` 실행
+6. **Success message**: 성공 메시지와 메타데이터 출력
+
+#### 2. Advanced Workflow (고급 CI/CD 파이프라인)
+
+```mermaid
+graph TD
+    A[코드 푸시] --> B[Advanced Workflow 트리거]
+    B --> C[code-quality Job 시작]
+    C --> D[Checkout code]
+    D --> E[Setup Node.js]
+    E --> F[Install dependencies]
+    F --> G[Run linting]
+    G --> H[Run tests]
+    H --> I{code-quality 성공?}
+    I -->|Yes| J[build-and-deploy Job 시작]
+    I -->|No| K[워크플로우 실패]
+    J --> L[Checkout code]
+    L --> M[Setup Node.js]
+    M --> N[Install dependencies]
+    N --> O[Build project]
+    O --> P{main 브랜치?}
+    P -->|Yes| Q[Deploy to GitHub Pages]
+    P -->|No| R[배포 건너뛰기]
+    Q --> S[워크플로우 완료]
+    R --> S
+    
+    style A fill:#e1f5fe
+    style K fill:#ffcdd2
+    style S fill:#c8e6c9
+    style I fill:#fff3e0
+    style P fill:#fff3e0
+```
+
+**실행 단계:**
+
+**code-quality Job:**
+1. **Checkout code**: 코드 다운로드
+2. **Setup Node.js**: Node.js 환경 설정
+3. **Install dependencies**: 의존성 설치
+4. **Run linting**: 코드 품질 검사 (ESLint 등)
+5. **Run tests**: 테스트 실행
+
+**build-and-deploy Job (code-quality 성공 시):**
+1. **Checkout code**: 코드 다운로드
+2. **Setup Node.js**: Node.js 환경 설정
+3. **Install dependencies**: 의존성 설치
+4. **Build project**: 프로젝트 빌드
+5. **Deploy to GitHub Pages**: main 브랜치인 경우만 배포
+
+#### 3. Conditional Workflow (조건부 워크플로우)
+
+```mermaid
+graph TD
+    A[코드 푸시] --> B[Conditional Workflow 트리거]
+    B --> C[detect-environment Job 시작]
+    C --> D[Detect environment]
+    D --> E{브랜치 확인}
+    E -->|main| F[environment=production]
+    E -->|develop| G[environment=staging]
+    E -->|feature/*| H[environment=development]
+    F --> I[deploy Job - production]
+    G --> J[deploy Job - staging]
+    H --> K[deploy Job - development]
+    I --> L[프로덕션 배포 로직]
+    J --> M[스테이징 배포 로직]
+    K --> N[개발 배포 로직]
+    L --> O[워크플로우 완료]
+    M --> O
+    N --> O
+    
+    style A fill:#e1f5fe
+    style F fill:#ffcdd2
+    style G fill:#fff3e0
+    style H fill:#e8f5e8
+    style O fill:#c8e6c9
+    style E fill:#fff3e0
+```
+
+**실행 단계:**
+
+**detect-environment Job:**
+1. **Detect environment**: 브랜치에 따라 환경 결정
+   - `main` → `production` (빨간색 - 주의 필요)
+   - `develop` → `staging` (주황색 - 테스트 환경)
+   - `feature/*` → `development` (초록색 - 개발 환경)
+
+**deploy Job (환경별):**
+1. **Checkout code**: 코드 다운로드
+2. **Deploy to [environment]**: 환경별 배포 로직 실행
+   - **Production**: "⚠️ 프로덕션 배포 - 주의 필요!"
+   - **Staging**: "🔧 스테이징 배포 - 테스트 환경"
+   - **Development**: "🛠️ 개발 배포 - 개발 환경"
+
+#### 4. Monitoring Workflow (모니터링 워크플로우)
+
+```mermaid
+graph TD
+    A[다른 워크플로우 완료] --> B[Monitoring Workflow 트리거]
+    B --> C{워크플로우 스킵됨?}
+    C -->|No| D[notify Job 시작]
+    C -->|Yes| E[워크플로우 종료]
+    D --> F[Notify workflow result]
+    F --> G[워크플로우 정보 출력]
+    G --> H{성공?}
+    H -->|Yes| I[✅ 성공 메시지]
+    H -->|No| J[❌ 실패 메시지]
+    I --> K[모니터링 완료]
+    J --> K
+    
+    style A fill:#e1f5fe
+    style I fill:#c8e6c9
+    style J fill:#ffcdd2
+    style K fill:#e8f5e8
+    style C fill:#fff3e0
+    style H fill:#fff3e0
+```
+
+**실행 단계:**
+1. **워크플로우 완료 감지**: Hello World, Advanced 워크플로우 완료 시
+2. **스킵 확인**: 워크플로우가 스킵되지 않았는지 확인
+3. **결과 알림**: 워크플로우 실행 결과 출력
+   - 워크플로우 이름
+   - 실행 결과 (success/failure)
+   - 시작/완료 시간
+   - 성공/실패 메시지
+
+### 🔄 실제 개발 시나리오 흐름도
+
+#### 시나리오: 개발자가 feature/new-button 브랜치에서 작업
+
+```mermaid
+graph TD
+    A[개발자: feature/new-button 브랜치] --> B[코드 작성 및 커밋]
+    B --> C[GitHub에 푸시]
+    C --> D[Pull Request 생성]
+    
+    D --> E[Hello World Workflow]
+    D --> F[Advanced Workflow]
+    D --> G[Conditional Workflow]
+    
+    E --> H[기본 테스트 및 빌드]
+    F --> I[코드 품질 검사]
+    G --> J[개발 환경 배포 로직]
+    
+    H --> K[테스트 통과]
+    I --> L[품질 검사 통과]
+    J --> M[개발 환경 배포 완료]
+    
+    K --> N[PR 머지 승인]
+    L --> N
+    M --> N
+    
+    N --> O[main 브랜치로 머지]
+    O --> P[Advanced: GitHub Pages 배포]
+    O --> Q[Conditional: 프로덕션 배포 로직]
+    
+    P --> R[배포 완료]
+    Q --> R
+    
+    style A fill:#e1f5fe
+    style D fill:#fff3e0
+    style N fill:#fff3e0
+    style O fill:#fff3e0
+    style R fill:#c8e6c9
+```
+
+### 📊 워크플로우 실행 순서 및 의존성
+
+#### 동시 실행되는 워크플로우:
+```
+코드 푸시
+├── Hello World Workflow (독립 실행)
+├── Advanced Workflow (독립 실행)
+└── Conditional Workflow (독립 실행)
+```
+
+#### 순차 실행되는 워크플로우:
+```
+다른 워크플로우 완료 → Monitoring Workflow 실행
+```
+
+#### 조건부 실행:
+- **Advanced Workflow**: `code-quality` 성공 시에만 `build-and-deploy` 실행
+- **Conditional Workflow**: 브랜치에 따라 다른 환경으로 배포
+- **Monitoring Workflow**: 다른 워크플로우 완료 시에만 실행
+
+### 🎯 워크플로우별 역할 요약
+
+| 워크플로우 | 역할 | 트리거 | 주요 기능 |
+|------------|------|--------|-----------|
+| **Hello World** | 기본 CI/CD 파이프라인 | main 푸시, PR | 테스트, 빌드, 성공 메시지 |
+| **Advanced** | 코드 품질 + 배포 | main/develop 푸시, PR | 품질 검사, GitHub Pages 배포 |
+| **Conditional** | 환경별 배포 | 모든 브랜치 푸시, PR | 브랜치별 환경 감지 및 배포 |
+| **Monitoring** | 워크플로우 모니터링 | 다른 워크플로우 완료 시 | 실행 결과 알림 및 로깅 |
+
+### 🔍 실제 실행 결과 확인 방법
+
+#### GitHub Actions 탭에서 확인할 수 있는 정보:
+- ✅ **워크플로우 실행 상태**: 성공/실패/진행 중
+- 📊 **실행 시간**: 각 단계별 소요 시간
+- 📝 **실행 로그**: 상세한 실행 과정 및 오류 메시지
+- 🎯 **조건부 실행**: 어떤 조건에서 실행되었는지
+- 🔄 **의존성**: Job 간의 의존 관계
+
+#### 성공적인 실행 시 확인 포인트:
+1. **모든 단계가 녹색**으로 표시
+2. **실행 시간**이 적절한 범위 내
+3. **커스텀 메시지**가 정상 출력
+4. **배포 결과**가 예상대로 동작
+
+#### 실패 시 디버깅 포인트:
+1. **실패한 단계** 확인
+2. **로그 파일**에서 오류 메시지 분석
+3. **조건부 실행** 조건 확인
+4. **의존성** 문제 확인 
