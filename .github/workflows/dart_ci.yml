@@ -18,7 +18,7 @@ jobs:
           sdk: 'stable'
       - name: Get dependencies
         run: dart pub get
-        working-directory: hello-ci
+        working-directory: JaeHyeok/hello-ci
       - name: Run Hello Dart
         run: dart run hello.dart
-        working-directory: hello-ci
+        working-directory: JaeHyeok/hello-ci
