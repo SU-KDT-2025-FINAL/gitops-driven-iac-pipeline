@@ -2,9 +2,10 @@ name: Dart CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, develop, feature/*]
   pull_request:
-    branches: [main, master]
+    branches: [main, master, develop]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,9 +13,18 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+      - name: Debug - List Directory Contents
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Directory contents:"
+          ls -la
+          echo "JaeHyeok directory contents:"
+          ls -la JaeHyeok/
+          echo "hello-ci directory contents:"
+          ls -la JaeHyeok/hello-ci/
       - name: Set up Dart SDK
         uses: dart-lang/setup-dart@v1
-        with
+        with:
           sdk: 'stable'
       - name: Get dependencies
         run: dart pub get
